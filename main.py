@@ -1,7 +1,7 @@
 !pip install yfinance pandas numpy matplotlib scipy lxml html5lib
 
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from data_loader import download_prices_batch
 from features import to_monthly_prices, compute_momentum_features
@@ -9,17 +9,25 @@ from portfolio import form_momentum_portfolios
 from evaluation import summarize_results, cumulative_returns
 
 
-def get_sp500_tickers():
-    """
-    Pull S&P 500 constituents from Wikipedia and format for Yahoo Finance.
-    """
-    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    table = pd.read_html(url)[0]
-    tickers = table["Symbol"].tolist()
-
-    # Yahoo Finance uses '-' instead of '.' in tickers like BRK.B -> BRK-B
-    tickers = [ticker.replace(".", "-") for ticker in tickers]
-    return tickers
+def get_large_cap_tickers():
+    return [
+        "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "TSLA", "BRK-B", "UNH",
+        "XOM", "JNJ", "JPM", "V", "PG", "AVGO", "MA", "HD", "CVX", "LLY",
+        "MRK", "ABBV", "PEP", "COST", "KO", "BAC", "ADBE", "WMT", "CRM", "NFLX",
+        "MCD", "AMD", "TMO", "CSCO", "ACN", "ABT", "DHR", "LIN", "PFE", "CMCSA",
+        "VZ", "DIS", "TXN", "INTC", "QCOM", "HON", "AMGN", "LOW", "UNP", "IBM",
+        "CAT", "SPGI", "GE", "INTU", "GS", "RTX", "BKNG", "ISRG", "BLK", "AXP",
+        "NOW", "DE", "MDT", "SYK", "PLD", "TJX", "ADP", "MMC", "AMT", "LMT",
+        "MO", "GILD", "C", "SCHW", "CB", "CI", "TMUS", "SO", "DUK", "ZTS",
+        "EOG", "BSX", "USB", "PNC", "CL", "TGT", "APD", "BDX", "FIS", "EQIX",
+        "NSC", "ITW", "REGN", "SLB", "MU", "VRTX", "ELV", "CME", "AON", "SHW",
+        "ICE", "ETN", "PYPL", "MPC", "KLAC", "EW", "GD", "EMR", "MAR", "ORLY",
+        "FDX", "GM", "F", "ROP", "ADI", "HCA", "PSA", "MET", "SNPS", "AEP",
+        "OXY", "MCK", "D", "TRV", "SRE", "KMB", "NOC", "AFL", "ALL", "WMB",
+        "ROST", "AZO", "JCI", "GIS", "AIG", "KMI", "LHX", "CTAS", "MSI", "ADM",
+        "PAYX", "IDXX", "TT", "PH", "CMI", "A", "DOW", "YUM", "STZ", "MS",
+        "EXC", "PRU", "PCAR", "RSG", "CHTR", "ODFL", "MNST", "DVN", "HAL", "BIIB"
+    ]
 
 
 def run_strategy_for_lookback(monthly_prices, lookback, holding=1, top_quantile=0.2):
@@ -40,8 +48,7 @@ def run_strategy_for_lookback(monthly_prices, lookback, holding=1, top_quantile=
 
 
 def main():
-    # 1) Load larger universe
-    tickers = get_sp500_tickers()
+    tickers = get_large_cap_tickers()
     print(f"Number of tickers requested: {len(tickers)}")
 
     prices = download_prices_batch(
@@ -52,9 +59,9 @@ def main():
     )
 
     print(f"Downloaded usable price series for {prices.shape[1]} stocks.")
+
     monthly_prices = to_monthly_prices(prices)
 
-    # 2) Compare multiple lookback horizons
     lookbacks = [3, 6, 12]
     all_results = {}
     all_summaries = {}
@@ -76,7 +83,6 @@ def main():
     print("\n=== Summary Across Lookbacks ===")
     print(summary_df.round(4))
 
-    # 3) Choose best strategy by spread Sharpe, then by spread mean monthly
     summary_sorted = summary_df.sort_values(
         by=["spread_sharpe", "spread_mean_monthly"],
         ascending=False
@@ -88,7 +94,6 @@ def main():
     print("\n=== Best Strategy Summary ===")
     print(summary_df.loc[best_lookback].round(4))
 
-    # 4) Plot cumulative returns for best strategy
     winner_curve = cumulative_returns(best_results["winner_return"])
     loser_curve = cumulative_returns(best_results["loser_return"])
     spread_curve = cumulative_returns(best_results["spread_return"])
